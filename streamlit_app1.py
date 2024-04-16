@@ -1,71 +1,191 @@
+import streamlit as st
 import numpy as np
 
-class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size):
-        # Initialize weights and biases for each layer
-        self.weights_input_hidden = np.random.randn(input_size, hidden_size)
-        self.bias_input_hidden = np.zeros((1, hidden_size))
-        self.weights_hidden_output = np.random.randn(hidden_size, output_size)
-        self.bias_hidden_output = np.zeros((1, output_size))
+class CandidateElimination:
+    def __init__(self, num_attributes):
+        # Initialize the most specific and most general hypotheses
+        self.S = ['0'] * num_attributes  # Most specific hypothesis
+        self.G = ['?'] * num_attributes  # Most general hypothesis
 
-    def sigmoid(self, x):
-        # Sigmoid activation function
-        return 1 / (1 + np.exp(-x))
+    def eliminate(self, X, y):
+        for i in range(len(X)):
+            x = X[i]
+            if y[i] == 'Yes':  # Positive instance
+                self.eliminate_negative(x)
+            else:  # Negative instance
+                self.eliminate_positive(x)
 
-    def sigmoid_derivative(self, x):
-        # Derivative of the sigmoid function
-        return x * (1 - x)
+    def eliminate_positive(self, x):
+        # Remove inconsistent hypotheses from S
+        for i in range(len(self.S)):
+            if self.S[i] != x[i]:
+                self.S[i] = '?' if self.S[i] != '?' else x[i]
+        
+        # Refine G
+        for i in range(len(self.G)):
+            if self.G[i] != '?' and self.G[i] != x[i]:
+                self.G[i] = '?'
 
-    def forward(self, inputs):
-        # Forward pass through the network
-        self.hidden_input = np.dot(inputs, self.weights_input_hidden) + self.bias_input_hidden
-        self.hidden_output = self.sigmoid(self.hidden_input)
-        self.output = np.dot(self.hidden_output, self.weights_hidden_output) + self.bias_hidden_output
-        return self.output
+    def eliminate_negative(self, x):
+        # Remove inconsistent hypotheses from G
+        for i in range(len(self.G)):
+            if self.G[i] != '?' and self.G[i] != x[i]:
+                self.G[i] = '?' if self.S[i] == '?' else self.S[i]
 
-    def backward(self, inputs, targets, learning_rate):
-        # Backpropagation
-        output_error = targets - self.output
-        output_delta = output_error
-        hidden_error = output_delta.dot(self.weights_hidden_output.T)
-        hidden_delta = hidden_error * self.sigmoid_derivative(self.hidden_output)
+    def print_hypotheses(self):
+        st.write("Most specific hypothesis (S):", ''.join(self.S))
+        st.write("Most general hypothesis (G):", ''.join(self.G))
 
-        # Update weights and biases
-        self.weights_hidden_output += self.hidden_output.T.dot(output_delta) * learning_rate
-        self.bias_hidden_output += np.sum(output_delta, axis=0, keepdims=True) * learning_rate
-        self.weights_input_hidden += inputs.T.dot(hidden_delta) * learning_rate
-        self.bias_input_hidden += np.sum(hidden_delta, axis=0, keepdims=True) * learning_rate
 
-    def train(self, inputs, targets, learning_rate, epochs):
-        # Train the neural network
-        for epoch in range(epochs):
-            self.forward(inputs)
-            self.backward(inputs, targets, learning_rate)
-            if epoch % 100 == 0:
-                loss = np.mean(np.square(targets - self.output))
-                print(f'Epoch {epoch}, Loss: {loss}')
+def main():
+    st.title("Candidate Elimination Algorithm")
 
-    def predict(self, inputs):
-        # Make predictions
-        return self.forward(inputs)
+    num_instances = st.number_input("Enter the number of instances:", min_value=1, step=1)
+    num_attributes = st.number_input("Enter the number of attributes:", min_value=1, step=1)
+import streamlit as st
+import numpy as np
 
-# Example usage:
-# Create a neural network with 2 input neurons, 3 hidden neurons, and 1 output neuron
-input_size = 2
-hidden_size = 3
-output_size = 1
-nn = NeuralNetwork(input_size, hidden_size, output_size)
+class CandidateElimination:
+    def __init__(self, num_attributes):
+        # Initialize the most specific and most general hypotheses
+        self.S = ['0'] * num_attributes  # Most specific hypothesis
+        self.G = ['?'] * num_attributes  # Most general hypothesis
 
-# Training data (example XOR problem)
-inputs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-targets = np.array([[0], [1], [1], [0]])
+    def eliminate(self, X, y):
+        for i in range(len(X)):
+            x = X[i]
+            if y[i] == 'Yes':  # Positive instance
+                self.eliminate_negative(x)
+            else:  # Negative instance
+                self.eliminate_positive(x)
 
-# Train the neural network
-learning_rate = 0.1
-epochs = 1000
-nn.train(inputs, targets, learning_rate, epochs)
+    def eliminate_positive(self, x):
+        # Remove inconsistent hypotheses from S
+        for i in range(len(self.S)):
+            if self.S[i] != x[i]:
+                self.S[i] = '?' if self.S[i] != '?' else x[i]
+        
+        # Refine G
+        for i in range(len(self.G)):
+            if self.G[i] != '?' and self.G[i] != x[i]:
+                self.G[i] = '?'
 
-# Make predictions
-predictions = nn.predict(inputs)
-print("Predictions:")
-print(predictions)
+    def eliminate_negative(self, x):
+        # Remove inconsistent hypotheses from G
+        for i in range(len(self.G)):
+            if self.G[i] != '?' and self.G[i] != x[i]:
+                self.G[i] = '?' if self.S[i] == '?' else self.S[i]
+
+    def print_hypotheses(self):
+        st.write("Most specific hypothesis (S):", ''.join(self.S))
+        st.write("Most general hypothesis (G):", ''.join(self.G))
+
+
+def main():
+    st.title("Candidate Elimination Algorithm")
+
+    num_instances = st.number_input("Enter the number of instances:", min_value=1, step=1)
+    num_attributes = st.number_input("Enter the number of attributes:", min_value=1, step=1)
+
+    X = []
+    y = []
+
+    for i in range(num_instances):
+        instance = []
+        st.write(f"Instance {i + 1}:")
+        for j in range(num_attributes):
+            attribute = st.selectbox(f"Select attribute {j + 1} value for instance {i + 1}:", ['Yes', 'No'])
+            instance.append(attribute)
+        label = st.radio(f"Select label for instance {i + 1}:", ['Yes', 'No'])
+        X.append(instance)
+        y.append(label)
+
+    if st.button("Run Algorithm"):
+        ce = CandidateElimination(num_attributes=num_attributes)
+        ce.eliminate(X, y)
+        ce.print_hypotheses()
+
+
+    X = []
+    y = []
+
+    for i in range(num_instances):
+        instance = []
+        st.write(f"Instance {i + 1}:")
+        for j in range(num_attributes):
+            attribute = st.selectbox(f"Select attribute {j + 1} value for instance {i + 1}:", ['Yes', 'No'])
+            instance.append(attribute)
+        label = st.radio(f"Select label for instance {i + 1}:", ['Yes', 'No'])
+        X.append(instance)
+        y.append(label)
+
+    if st.button("Run Algorithm"):
+        ce = CandidateElimination(num_attributes=num_attributes)
+        ce.eliminate(X, y)
+        ce.print_hypotheses()
+
+import streamlit as st
+import numpy as np
+
+class CandidateElimination:
+    def __init__(self, num_attributes):
+        # Initialize the most specific and most general hypotheses
+        self.S = ['0'] * num_attributes  # Most specific hypothesis
+        self.G = ['?'] * num_attributes  # Most general hypothesis
+
+    def eliminate(self, X, y):
+        for i in range(len(X)):
+            x = X[i]
+            if y[i] == 'Yes':  # Positive instance
+                self.eliminate_negative(x)
+            else:  # Negative instance
+                self.eliminate_positive(x)
+
+    def eliminate_positive(self, x):
+        # Remove inconsistent hypotheses from S
+        for i in range(len(self.S)):
+            if self.S[i] != x[i]:
+                self.S[i] = '?' if self.S[i] != '?' else x[i]
+        
+        # Refine G
+        for i in range(len(self.G)):
+            if self.G[i] != '?' and self.G[i] != x[i]:
+                self.G[i] = '?'
+
+    def eliminate_negative(self, x):
+        # Remove inconsistent hypotheses from G
+        for i in range(len(self.G)):
+            if self.G[i] != '?' and self.G[i] != x[i]:
+                self.G[i] = '?' if self.S[i] == '?' else self.S[i]
+
+    def print_hypotheses(self):
+        st.write("Most specific hypothesis (S):", ''.join(self.S))
+        st.write("Most general hypothesis (G):", ''.join(self.G))
+
+
+def main():
+    st.title("Candidate Elimination Algorithm")
+
+    num_instances = st.number_input("Enter the number of instances:", min_value=1, step=1)
+    num_attributes = st.number_input("Enter the number of attributes:", min_value=1, step=1)
+
+    X = []
+    y = []
+
+    for i in range(num_instances):
+        instance = []
+        st.write(f"Instance {i + 1}:")
+        for j in range(num_attributes):
+            attribute = st.selectbox(f"Select attribute {j + 1} value for instance {i + 1}:", ['Yes', 'No'])
+            instance.append(attribute)
+        label = st.radio(f"Select label for instance {i + 1}:", ['Yes', 'No'])
+        X.append(instance)
+        y.append(label)
+
+    if st.button("Run Algorithm"):
+        ce = CandidateElimination(num_attributes=num_attributes)
+        ce.eliminate(X, y)
+        ce.print_hypotheses()
+
+if __name__ == "__main__":
+    main()
