@@ -1,78 +1,66 @@
 import streamlit as st
 import pandas as pd
-from pgmpy.models import BayesianModel
-from pgmpy.estimators import MaximumLikelihoodEstimator
-from pgmpy.inference import VariableElimination
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_score
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-def main():
-    st.title('Heart Disease Prediction')
+st.write("22AIA-FANATICS")
+st.title("Clustering Comparison: EM (GMM) vs k-Means")
 
-    # Load the dataset
-    try:
-        data = pd.read_csv(r"C:\Users\MOORTHY\Downloads\heartdisease.csv")
-        heart_disease = pd.DataFrame(data)
-    except FileNotFoundError:
-        st.error("Error: Dataset 'heartdisease.csv' not found. Make sure the file exists and is in the correct directory.")
-        return
-    except Exception as e:
-        st.error(f"An error occurred while loading the dataset: {e}")
-        return
 
-    # Define the Bayesian Network model
-    model = BayesianModel([
-        ('age', 'Lifestyle'),
-        ('Gender', 'Lifestyle'),
-        ('Family', 'heartdisease'),
-        ('diet', 'cholestrol'),
-        ('Lifestyle', 'diet'),
-        ('cholestrol', 'heartdisease'),
-        ('diet', 'cholestrol')
-    ])
+@st.cache
+def load_data(file):
+    data = pd.read_csv(file)
+    return data
 
-    # Fit the model using Maximum Likelihood Estimator
-    model.fit(heart_disease, estimator=MaximumLikelihoodEstimator)
+def plot_clusters(data, labels, algorithm_name):
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(x=data[:, 0], y=data[:, 1], hue=labels, palette='viridis', marker='o', edgecolor='k')
+    plt.title(f'Clusters by {algorithm_name}')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    st.pyplot(plt)
 
-    # Create a VariableElimination object for inference
-    HeartDisease_infer = VariableElimination(model)
+def perform_clustering(data, num_clusters):
+    # k-Means Clustering
+    kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+    kmeans_labels = kmeans.fit_predict(data)
+    kmeans_silhouette = silhouette_score(data, kmeans_labels)
 
-    # Display user input fields
-    st.write('Enter the following values for prediction:')
-    age = st.number_input('Age', min_value=0, max_value=100, step=1)
-    gender = st.selectbox('Gender', ['Male', 'Female'])
-    family_history = st.selectbox('Family History', ['Yes', 'No'])
-    diet = st.selectbox('Diet', ['High', 'Medium'])
-    lifestyle = st.selectbox('Lifestyle', ['Athlete', 'Active', 'Moderate', 'Sedentary'])
-    cholesterol = st.selectbox('Cholesterol', ['High', 'Borderline', 'Normal'])
+    # EM Clustering (Gaussian Mixture Model)
+    gmm = GaussianMixture(n_components=num_clusters, random_state=42)
+    gmm_labels = gmm.fit_predict(data)
+    gmm_silhouette = silhouette_score(data, gmm_labels)
 
-    # Convert user inputs to appropriate values for inference
-    gender = 0 if gender == 'Male' else 1
-    family_history = 1 if family_history == 'Yes' else 0
-    diet = 0 if diet == 'High' else 1
-    lifestyle_map = {'Athlete': 0, 'Active': 1, 'Moderate': 2, 'Sedentary': 3}
-    lifestyle = lifestyle_map[lifestyle]
-    cholesterol_map = {'High': 0, 'Borderline': 1, 'Normal': 2}
-    cholesterol = cholesterol_map[cholesterol]
+    return kmeans_labels, kmeans_silhouette, gmm_labels, gmm_silhouette
 
-    # Perform inference
-    try:
-        q = HeartDisease_infer.query(variables=['heartdisease'], evidence={
-            'age': age,
-            'Gender': gender,
-            'Family': family_history,
-            'diet': diet,
-            'Lifestyle': lifestyle,
-            'cholestrol': cholesterol
-        })
+st.write("Upload your CSV file")
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
-        # Display prediction result
-        if q:
-            max_prob_state = q.values.argmax()  # Get the index of the state with the highest probability
-            st.write('Prediction:', max_prob_state)
+if uploaded_file is not None:
+    data = load_data(uploaded_file)
+    st.write("Dataset:")
+    st.write(data.head())
+
+    feature_columns = st.multiselect("Select feature columns for clustering", data.columns, default=data.columns[:2])
+    num_clusters = st.slider("Number of clusters", min_value=2, max_value=10, value=3)
+
+    if st.button("Perform Clustering"):
+        data_selected = data[feature_columns].values
+        
+        kmeans_labels, kmeans_silhouette, gmm_labels, gmm_silhouette = perform_clustering(data_selected, num_clusters)
+        
+        st.write(f"k-Means Silhouette Score: {kmeans_silhouette:.2f}")
+        plot_clusters(data_selected, kmeans_labels, "k-Means")
+
+        st.write(f"EM (GMM) Silhouette Score: {gmm_silhouette:.2f}")
+        plot_clusters(data_selected, gmm_labels, "EM (GMM)")
+
+        st.write("Comparison:")
+        if kmeans_silhouette > gmm_silhouette:
+            st.write("k-Means clustering resulted in a better silhouette score, indicating better-defined clusters.")
         else:
-            st.write('No prediction available.')
-
-    except Exception as e:
-        st.error(f"An error occurred during inference: {e}")
-
-if __name__ == '__main__':
-    main()
+            st.write("EM (GMM) clustering resulted in a better silhouette score, indicating better-defined clusters.")
