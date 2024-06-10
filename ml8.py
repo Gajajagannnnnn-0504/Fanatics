@@ -1,57 +1,66 @@
 import streamlit as st
-from sklearn.cluster import KMeans
-from sklearn import preprocessing
-from sklearn.mixture import GaussianMixture
+import pandas as pd
 from sklearn.datasets import load_iris
-import numpy as np
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report
 
-# Load iris dataset
-dataset = load_iris()
-X = dataset.data
-y = dataset.target
+# Load the dataset
+@st.cache
+def load_data():
+    data = load_iris()
+    df = pd.DataFrame(data.data, columns=data.feature_names)
+    df['target'] = data.target
+    return df
 
-# Plotting
-def plot_clusters(X, y, predY, y_cluster_gmm):
-    colormap = np.array(['red', 'lime', 'black'])
+df = load_data()
 
-    # Real Plot
-    plt.subplot(1, 3, 1)
-    plt.scatter(X[:, 2], X[:, 3], c=colormap[y], s=40)
-    plt.title('Real')
+# Split the data into features and target
+X = df.drop(columns=['target'])
+y = df['target']
 
-    # KMeans Plot
-    plt.subplot(1, 3, 2)
-    plt.scatter(X[:, 2], X[:, 3], c=colormap[predY], s=40)
-    plt.title('KMeans')
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    # GMM Plot
-    plt.subplot(1, 3, 3)
-    plt.scatter(X[:, 2], X[:, 3], c=colormap[y_cluster_gmm], s=40)
-    plt.title('GMM Classification')
+# Train the k-Nearest Neighbors classifier
+n_neighbors = st.sidebar.slider('Number of neighbors', min_value=1, max_value=10, value=5)
+knn = KNeighborsClassifier(n_neighbors=n_neighbors)
+knn.fit(X_train, y_train)
 
-    st.pyplot()
+# Make predictions
+y_pred = knn.predict(X_test)
 
-# Main function
-def main():
-    st.title('Clustering Visualization')
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
 
-    # Plotting
-    plt.figure(figsize=(14, 7))
+# Print classification report
+st.write("22AIA-FANATICS")
+st.write('## Classification Report')
+st.write(classification_report(y_test, y_pred, target_names=load_iris().target_names))
 
-    # KMeans clustering
-    model = KMeans(n_clusters=3)
-    model.fit(X)
-    predY = model.labels_
+# Streamlit app
+st.title('k-Nearest Neighbors Classifier for Iris Dataset')
 
-    # Gaussian Mixture Model (GMM) clustering
-    scaler = preprocessing.StandardScaler()
-    xsa = scaler.fit_transform(X)
-    gmm = GaussianMixture(n_components=3)
-    gmm.fit(xsa)
-    y_cluster_gmm = gmm.predict(xsa)
+st.write('## Dataset')
+st.write(df.head())
 
-    plot_clusters(X, y, predY, y_cluster_gmm)
+st.write('## Model Performance')
+st.write(f'Accuracy: {accuracy:.4f}')
 
-if __name__ == '__main__':
-    main()
+st.write('## Sample Predictions')
+correct_predictions = []
+wrong_predictions = []
+
+for i in range(len(y_pred)):
+    if y_pred[i] == y_test.iloc[i]:
+        correct_predictions.append((X_test.iloc[i], y_test.iloc[i], y_pred[i]))
+    else:
+        wrong_predictions.append((X_test.iloc[i], y_test.iloc[i], y_pred[i]))
+
+st.write('### Correct Predictions')
+for features, true_label, predicted_label in correct_predictions:
+    st.write(f'Features: {features.values}, True Label: {load_iris().target_names[true_label]}, Predicted Label: {load_iris().target_names[predicted_label]}')
+
+st.write('### Wrong Predictions')
+for features, true_label, predicted_label in wrong_predictions:
+    st.write(f'Features: {features.values}, True Label: {load_iris().target_names[true_label]}, Predicted Label: {load_iris().target_names[predicted_label]}')
