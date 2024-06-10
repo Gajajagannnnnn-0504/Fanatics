@@ -7,7 +7,7 @@ from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-st.write("Team: 22AIA-WEBSPIRITS")
+st.write("Team: 22AIA-FANATICS")
 st.title("Clustering Comparison: EM (GMM) vs k-Means")
 
 
