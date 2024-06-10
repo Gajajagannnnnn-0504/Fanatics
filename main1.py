@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.write("Team: 22AIA-WEBSPIRITS")
+st.write("Team: 22AIA-FANATICS")
 st.title("Candidate-Elimination Algorithm")
 
 
