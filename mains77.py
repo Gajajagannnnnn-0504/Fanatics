@@ -1,14 +1,20 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-
-
+from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
-import seaborn as sns
+
+# Attempt to import seaborn, and handle the case where it is not installed.
+try:
+    import seaborn as sns
+except ModuleNotFoundError:
+    st.error("The seaborn library is not installed. Please install it using `pip install seaborn`.")
+    st.stop()
 
 st.write("Team: 22AIA-FANATICS")
 st.title("Clustering Comparison: EM (GMM) vs k-Means")
-
 
 @st.cache
 def load_data(file):
@@ -50,16 +56,19 @@ if uploaded_file is not None:
     if st.button("Perform Clustering"):
         data_selected = data[feature_columns].values
         
-        kmeans_labels, kmeans_silhouette, gmm_labels, gmm_silhouette = perform_clustering(data_selected, num_clusters)
-        
-        st.write(f"k-Means Silhouette Score: {kmeans_silhouette:.2f}")
-        plot_clusters(data_selected, kmeans_labels, "k-Means")
+        try:
+            kmeans_labels, kmeans_silhouette, gmm_labels, gmm_silhouette = perform_clustering(data_selected, num_clusters)
+            
+            st.write(f"k-Means Silhouette Score: {kmeans_silhouette:.2f}")
+            plot_clusters(data_selected, kmeans_labels, "k-Means")
 
-        st.write(f"EM (GMM) Silhouette Score: {gmm_silhouette:.2f}")
-        plot_clusters(data_selected, gmm_labels, "EM (GMM)")
+            st.write(f"EM (GMM) Silhouette Score: {gmm_silhouette:.2f}")
+            plot_clusters(data_selected, gmm_labels, "EM (GMM)")
 
-        st.write("Comparison:")
-        if kmeans_silhouette > gmm_silhouette:
-            st.write("k-Means clustering resulted in a better silhouette score, indicating better-defined clusters.")
-        else:
-            st.write("EM (GMM) clustering resulted in a better silhouette score, indicating better-defined clusters.")
+            st.write("Comparison:")
+            if kmeans_silhouette > gmm_silhouette:
+                st.write("k-Means clustering resulted in a better silhouette score, indicating better-defined clusters.")
+            else:
+                st.write("EM (GMM) clustering resulted in a better silhouette score, indicating better-defined clusters.")
+        except Exception as e:
+            st.error(f"An error occurred during clustering: {e}")
