@@ -38,7 +38,7 @@ def plot_lwr(tau):
     return plt
 
 # Streamlit app
-st.write("22AIA-WEBSPIRITS")
+st.write("22AIA-FANATICS")
 st.title("Local Weighted Regression Visualization")
 st.write("This app visualizes Local Weighted Regression on a sine function.")
 
