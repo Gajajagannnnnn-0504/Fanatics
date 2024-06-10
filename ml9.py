@@ -1,38 +1,52 @@
+import pandas as pd 
+import numpy as np 
+import matplotlib.pyplot as plt 
 import streamlit as st
-from sklearn.datasets import load_iris
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
-import numpy as np
 
-def main():
-    st.title('KNN Classifier for Iris Dataset')
+# Define the data
+X = np.arange(0, 6*(np.pi), 0.1)
+Y = np.sin(X)
 
-    # Load Iris dataset
-    dataset = load_iris()
+# Scatter plot function
+def scatter_plot(X, Y):
+    plt.scatter(X, Y, alpha=0.2)
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Scatter Plot of Y = sin(X)')
 
-    # User input for random state
-    random_state = st.sidebar.slider('Random State:', min_value=0, max_value=100, value=0)
+# Local Regression function
+def local_regression(x0, X, Y, tau): 
+    x0 = np.r_[1, x0]
+    X = np.c_[np.ones(len(X)), X]
+    xw = X.T * radial_kernel(x0, X, tau)
+    beta = np.linalg.pinv(xw @ X) @ xw @ Y
+    return x0 @ beta
 
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target, random_state=random_state)
+# Radial Kernel function
+def radial_kernel(x0, X, tau): 
+    return np.exp(np.sum((X - x0) ** 2, axis=1) / (-2 * (tau ** 2)))
 
-    # User input for number of neighbors
-    n_neighbors = st.sidebar.slider('Number of Neighbors:', min_value=1, max_value=10, value=1)
+# Plot LWR function
+def plot_lwr(tau):
+    domain = np.arange(0, 6*(np.pi), 0.1)
+    prediction = [local_regression(x0, X, Y, tau) for x0 in domain]
+    plt.scatter(X, Y, alpha=0.3)
+    plt.plot(domain, prediction, color='red')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title(f'Local Weighted Regression with tau={tau}')
+    return plt
 
-    # Train KNN classifier
-    kn = KNeighborsClassifier(n_neighbors=n_neighbors)
-    kn.fit(X_train, y_train)
+# Streamlit app
+st.write("22AIA-WEBSPIRITS")
+st.title("Local Weighted Regression Visualization")
+st.write("This app visualizes Local Weighted Regression on a sine function.")
 
-    # Prediction and evaluation
-    st.write('Prediction Results:')
-    for i in range(len(X_test)):
-        x = X_test[i]
-        x_new = np.array([x])
-        prediction = kn.predict(x_new)
-        st.write(f"TARGET={y_test[i]} {dataset.target_names[y_test[i]]}, PREDICTED={prediction} {dataset.target_names[prediction]}")
+# Tau input
+tau = st.slider('Select tau value', 0.01, 1.0, 0.1)
 
-    accuracy = kn.score(X_test, y_test)
-    st.write(f'Accuracy: {accuracy:.2f}')
-
-if __name__ == '__main__':
-    main()
+# Plot the LWR
+fig, ax = plt.subplots()
+scatter_plot(X, Y)
+plot_lwr(tau)
+st.pyplot(fig)
