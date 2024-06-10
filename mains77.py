@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.cluster import KMeans
+
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
