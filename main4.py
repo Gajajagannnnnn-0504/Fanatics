@@ -36,7 +36,7 @@ with st.sidebar:
     st.markdown("**This is bold text in the sidebar**")
 
 # The main page content
-st.write("22AIA-WEBSPIRITS.")
+st.write("22AIA-FANATICS")
 
 
 # Sidebar for file upload and model selection
