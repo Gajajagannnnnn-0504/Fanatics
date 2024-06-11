@@ -1,58 +1,83 @@
-import streamlit as st
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+import streamlit as st
+import requests
+import zipfile
 import io
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn import metrics
 
-# Define a function to load and preprocess data
-def load_data(uploaded_file):
-    try:
-        # Read the contents of the uploaded file
-        file_buffer = io.BytesIO(uploaded_file.getvalue())
-        data = pd.read_csv(file_buffer)
-        if data.empty:
-            st.error("Error: Uploaded file is empty.")
-            return None, None
-        X = data.iloc[:, :-1]
-        y = data.iloc[:, -1]
-        # Convert categorical variables to numerical
-        label_encoders = {}
-        for column in X.columns:
-            le = LabelEncoder()
-            X[column] = le.fit_transform(X[column])
-            label_encoders[column] = le
-        y = LabelEncoder().fit_transform(y)
-        return X, y
-    except Exception as e:
-        st.error(f"An error occurred while loading the data: {e}")
-        return None, None
+st.title("22AIA-WEBSPIRITS")
+# Title and introduction
+st.title("Naive Bayes Classifier for IMDb Review Classification")
+st.write("This app uses a Naive Bayes classifier to predict whether an IMDb review is positive or negative.")
 
-# Main function to run the Streamlit app
-def main():
-    st.title('Tennis Game Prediction')
-    
-    # Sidebar to upload file
-    uploaded_file = st.sidebar.file_uploader("Upload CSV file", type=['csv'])
-    
-    if uploaded_file is not None:
-        st.write("### First 5 rows of data:")
-        # Pass the uploaded file object to the load_data function
-        X, y = load_data(uploaded_file)
-        if X is not None and y is not None:
-            st.dataframe(X.head())
-            
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
-            
-            classifier = GaussianNB()
-            classifier.fit(X_train, y_train)
-            
-            y_pred = classifier.predict(X_test)
-            accuracy = accuracy_score(y_test, y_pred)
-            
-            st.write("### Model Accuracy:")
-            st.write(f"Accuracy of the model: {accuracy:.2f}")
+# URL for the dataset
+url = "https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip"
 
-if __name__ == '__main__':
-    main()
+# Function to download and extract data
+@st.cache_data
+def download_and_extract_data(url):
+    response = requests.get(url)
+    with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+        z.extractall()
+        with open(z.namelist()[0], 'r') as file:
+            df = pd.read_csv(file, sep='\t', names=["sentiment", "text"])
+    return df
+
+# Download and extract the dataset
+df = download_and_extract_data(url)
+
+# Display the first five rows of the dataset
+st.subheader("First Five Rows of the Dataset")
+st.write(df.head())
+
+# Dataset information
+st.subheader("Dataset Information")
+buffer = io.StringIO()
+df.info(buf=buffer)
+s = buffer.getvalue()
+st.text(s)
+
+# Check for missing values
+st.subheader("Missing Values")
+st.write(df.isna().sum())
+
+# Map sentiment to numerical values
+df['snum'] = df.sentiment.map({'ham': 1, 'spam': 0})
+
+# Split the dataset into features and target variable
+x = df['text']
+y = df['snum']
+
+# Split the data into training and test sets
+xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.3, random_state=42)
+
+# Initialize the CountVectorizer
+cv = CountVectorizer()
+xtrain_dtm = cv.fit_transform(xtrain)
+xtest_dtm = cv.transform(xtest)
+
+# Initialize the MultinomialNB classifier
+clf = MultinomialNB().fit(xtrain_dtm, ytrain)
+
+# Predict the test set results
+predicted = clf.predict(xtest_dtm)
+
+# Display the confusion matrix
+st.subheader("Confusion Matrix")
+cm = metrics.confusion_matrix(ytest, predicted)
+st.write(cm)
+
+# Display the accuracy score
+st.subheader("Accuracy Score")
+accuracy = metrics.accuracy_score(ytest, predicted)
+st.write(f"Accuracy: {accuracy:.2f}")
+
+# Display precision and recall
+st.subheader("Precision and Recall")
+precision = metrics.precision_score(ytest, predicted, average='micro')
+recall = metrics.recall_score(ytest, predicted, average='micro')
+st.write(f"Precision: {precision:.2f}")
+st.write(f"Recall: {recall:.2f}")
