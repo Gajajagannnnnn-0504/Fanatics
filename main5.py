@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import metrics
 
-st.title("22AIA-WEBSPIRITS")
+st.title("22AIA-FANATICS")
 # Title and introduction
 st.title("Naive Bayes Classifier for IMDb Review Classification")
 st.write("This app uses a Naive Bayes classifier to predict whether an IMDb review is positive or negative.")
