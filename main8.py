@@ -34,6 +34,7 @@ y_pred = knn.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 
 # Print classification report
+st.write("22AIA-FANATICS")
 st.write('## Classification Report')
 st.write(classification_report(y_test, y_pred, target_names=load_iris().target_names))
 
